@@ -114,10 +114,8 @@ def update():
 
             # Get full episode destination path
             # xpath is the file as it was downloaded with only the name changed
-            # ypath is the file after clearing all metadata
             # path is the final file
             xpath = podcast_obj.storage_dir + display_prefix + "X.mp3"
-            ypath = podcast_obj.storage_dir + display_prefix + "Y.mp3"
             path = podcast_obj.storage_dir + display_prefix + ".mp3"
 
 
@@ -159,22 +157,13 @@ def update():
             # the script will simply restart the download of the interrupted episode on the next run.
             with open(xpath, 'wb') as f:
                 f.write(response.content)
-            
-            log("Download complete: %s" % xpath)
-
-            # Clear ALL metadata from the file, leaving only the MP3 data
-            # Confirmed working Nov 14 2020, inlcuding removing album art
-            # Only fatal errors will display
-            print(display_prefix + ": Clearing metadata...")
-            log("Clearing metadata")
-            subprocess.run(["ffmpeg.exe", "-threads", "6", "-i" , xpath, "-map_metadata", "-1", ypath, "-loglevel", "fatal"])
 
             # Write correct metadata to clean file
             # Force using ID3v2.3 tags for best results
             # Only fatal errors will be displayed
             print(display_prefix + ": Writing correct metadata...")
             log("Writing metadata")
-            subprocess.run(["ffmpeg", "-i", ypath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
+            subprocess.run(["ffmpeg", "-i", xpath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
                             "-id3v2_version", "3", "-metadata:s:v", 'title="Album cover"',"-metadata:s:v", 'comment="Cover (front)"',
                             "-metadata", "track=" + str(ep_num),
                             "-metadata", "title=" + title,
@@ -182,11 +171,13 @@ def update():
                             "-metadata", "album_artist=" + artist,
                             "-metadata", "artist=" + artist,
                             "-metadata", "year=" + year,
+                            "-metadata", "genre=Podcast",
                             "-loglevel", "fatal", path])
             
-            # Delete X and Y temporary files
+            # Delete temporary file
             os.remove(xpath)
-            os.remove(ypath)
+
+            log("Download complete: %s" % path)
 
         log("Update complete.")
         print("Files located in the following folder: %s" % podcast_obj.storage_dir)
