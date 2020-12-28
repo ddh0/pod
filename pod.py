@@ -118,7 +118,6 @@ def update():
             xpath = podcast_obj.storage_dir + display_prefix + "X.mp3"
             path = podcast_obj.storage_dir + display_prefix + ".mp3"
 
-
             # Skip this episode if already downloaded
             if os.path.exists(path):
                 continue
@@ -139,7 +138,8 @@ def update():
                 x += 1
 
             # Download episode
-            response = requests.get(episode_url)
+            HEADER_STRING = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66'}
+            response = requests.get(episode_url, headers=HEADER_STRING)
             
             # Fail if size is less than 1MB
             if sys.getsizeof(response.content) < 1000000:  # If size is less than 1MB
@@ -163,7 +163,7 @@ def update():
             # Only fatal errors will be displayed
             print(display_prefix + ": Writing correct metadata...")
             log("Writing metadata")
-            subprocess.run(["ffmpeg", "-i", xpath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
+            subprocess.run(["ffmpeg.exe", "-i", xpath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
                             "-id3v2_version", "3", "-metadata:s:v", 'title="Album cover"',"-metadata:s:v", 'comment="Cover (front)"',
                             "-metadata", "track=" + str(ep_num),
                             "-metadata", "title=" + title,
