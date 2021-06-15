@@ -6,3 +6,4 @@ MIT License: see https://opensource.org/licenses/MIT
 
 # Requirements
 Requires ffmpeg.exe to be in the PATH or in the same directory as the script.
+Download ffmpeg here: https://www.ffmpeg.org/download.html
