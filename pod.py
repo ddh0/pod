@@ -1,7 +1,7 @@
 # Program that downloads all episodes of a podcast
 # Features
 # -- Functions: add, remove, update
-# - All functions can be run from command line
+# - Run the file to update without having to use python interpreter
 # - Download all episodes of a podcast, put into the correct folder
 # - Tag each file with metadata from the feed and the stored config
 
@@ -15,6 +15,8 @@ import subprocess
 
 STORAGE_DIR = "C:\\Users\\Dylan\\Python\\pod\\storage\\"
 LOGFILE = "C:\\Users\\Dylan\\Python\\pod\\log.txt"
+FFMPEG_PATH = "C:\\Users\\Dylan\\Python\\pod\\ffmpeg.exe"
+TEMP_DIR = "C:\\Users\\Dylan\\AppData\\Local\\Temp\\"
 debug = False
     
 
@@ -111,20 +113,6 @@ def update():
             # Get current episode number
             ep_num = length - i
             display_prefix = podcast_obj.prefix + "_" + str(ep_num).zfill(3)
-
-            # Get full episode destination path
-            # xpath is the file as it was downloaded with only the name changed
-            # path is the final file
-            xpath = podcast_obj.storage_dir + display_prefix + "X.mp3"
-            path = podcast_obj.storage_dir + display_prefix + ".mp3"
-
-            # Skip this episode if already downloaded
-            if os.path.exists(path):
-                continue
-
-            # Show which episode is in progress
-            print(display_prefix + ': Downloading...')
-            log('In progress: %s' % path)
             
             # Get episode title
             title = feed.entries[i].title
@@ -132,10 +120,44 @@ def update():
             # Get episode URL
             episode_url = ""  # Variables for
             x = 0             # the while loop
-            while ".mp3" not in episode_url:
-                episode_url = feed.entries[i]['links'][x]['href']
+            skip_this_item = False
+            while ('.mp3' not in episode_url and 
+                '.wav' not in episode_url and 
+                '.m4a' not in episode_url): 
+                try:
+                    episode_url = feed.entries[i]['links'][x]['href']
+                except:
+                    skip_this_item = True
+                    break
                 log("episode_url: %s" % episode_url)
                 x += 1
+
+            if ".mp3" in episode_url:
+                ext = ".mp3"
+            if ".wav" in episode_url:
+                ext = ".wav"
+            if ".m4a" in episode_url:
+                ext = ".m4a"
+
+            # Get full episode destination path
+            # xpath is the temporary file as it was downloaded with only the name changed
+            # path is the final file
+            xpath = TEMP_DIR + display_prefix + "X" + ext
+            path = podcast_obj.storage_dir + display_prefix + ext
+
+            # Skip this episode if already downloaded
+            if os.path.exists(path):
+                continue
+
+            if skip_this_item:
+                print(display_prefix + ": Skipped due to file extension (item likely not audio)")
+                log(display_prefix + ": Skipped due to file extension (item likely not audio)")
+                skip_this_item = False
+                continue
+            
+            # Show which episode is in progress
+            print(display_prefix + ': Downloading...')
+            log('In progress: %s' % display_prefix)
 
             # Download episode
             HEADER_STRING = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.66'}
@@ -163,7 +185,7 @@ def update():
             # Only fatal errors will be displayed
             print(display_prefix + ": Writing correct metadata...")
             log("Writing metadata")
-            subprocess.run(["ffmpeg.exe", "-i", xpath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
+            subprocess.run([FFMPEG_PATH, "-i", xpath, "-i", image_path, "-map", "0:0", "-map", "1:0", "-codec", "copy",
                             "-id3v2_version", "3", "-metadata:s:v", 'title="Album cover"',"-metadata:s:v", 'comment="Cover (front)"',
                             "-metadata", "track=" + str(ep_num),
                             "-metadata", "title=" + title,
